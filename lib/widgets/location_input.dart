@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:location/location.dart';
 
 class LocationInput extends StatefulWidget {
-  const LocationInput({super.key});
+  const LocationInput({super.key, required this.onSelectLocation});
+
+  final void Function(LocationData image) onSelectLocation;
 
   @override
   State<LocationInput> createState() => _LocationInputState();
@@ -11,14 +13,15 @@ class LocationInput extends StatefulWidget {
 class _LocationInputState extends State<LocationInput> {
   Location? pickedLocation;
   var isGettingLocation = false;
+  LocationData? _pickedLocation;
 
   void _getCurrentLocation() async {
     Location location = Location();
 
     bool serviceEnabled;
     PermissionStatus permissionGranted;
-    LocationData locationData;
 
+    // Check if location services are enabled
     serviceEnabled = await location.serviceEnabled();
     if (!serviceEnabled) {
       serviceEnabled = await location.requestService();
@@ -39,24 +42,31 @@ class _LocationInputState extends State<LocationInput> {
       isGettingLocation = true;
     });
 
-    locationData = await location.getLocation();
+    final locationData = await location.getLocation();
 
     setState(() {
       isGettingLocation = false;
+      _pickedLocation = locationData;
     });
+
+    widget.onSelectLocation(_pickedLocation!);
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget previewContent = Text('No Location Chosen',
-        textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-              color: Theme.of(context).colorScheme.onSurface,
-            ));
-
-    if (isGettingLocation) {
-      previewContent = const CircularProgressIndicator();
+    Widget content;
+    if (_pickedLocation == null) {
+      content = TextButton.icon(
+        icon: const Icon(Icons.location_pin),
+        label: const Text('No location Selected'),
+        onPressed: () {},
+      );
+    } else {
+      content = Text(_pickedLocation!.latitude.toString());
     }
+
+    if (isGettingLocation) {}
+
     return Column(
       children: [
         Container(
@@ -68,7 +78,7 @@ class _LocationInputState extends State<LocationInput> {
                 color: Theme.of(context).colorScheme.primary.withOpacity(0.2)),
           ),
           alignment: Alignment.center, //&  alignment of child
-          child: previewContent,
+          child: content,
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
